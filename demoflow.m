@@ -1,5 +1,4 @@
 clear
-clear all
 
 addpath('mex');
 
