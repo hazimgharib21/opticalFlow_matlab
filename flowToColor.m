@@ -1,4 +1,4 @@
-function img = flowToColor(flow, varargin)
+function [img, maxrad, minu, maxu, minv, maxv] = flowToColor(flow, varargin)
 
 %  flowToColor(flow, maxFlow) flowToColor color codes flow field, normalize
 %  based on specified value, 

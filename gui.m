@@ -22,7 +22,7 @@ function varargout = gui(varargin)
 
 % Edit the above text to modify the response to help gui
 
-% Last Modified by GUIDE v2.5 09-Aug-2018 18:34:49
+% Last Modified by GUIDE v2.5 10-Aug-2018 03:05:08
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -42,6 +42,10 @@ else
     gui_mainfcn(gui_State, varargin{:});
 end
 % End initialization code - DO NOT EDIT
+
+addpath('mex');
+
+% Set global variables
 
 
 % --- Executes just before gui is made visible.
@@ -78,16 +82,7 @@ function loadVideoFileButton_Callback(hObject, eventdata, handles)
 % hObject    handle to loadVideoFileButton (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-[file,path] = uigetfile('E:\Cloud\Google Drive\projectMdmAzlin\*.avi;*.mp4',...
-    'Select a video file');
-
-if isequal(file,0)
-    disp('User selected Cancel');
-    return;
-else
-    disp(['User selected ', fullfile(path,file)]);
-    a = VideoReader(fullfile(path,file));
-end
+    runOpticalFlow(hObject, eventdata, handles);
 
 
 % --- Executes on button press in applyButton.
@@ -102,11 +97,75 @@ function opticalFlowButton_Callback(hObject, eventdata, handles)
 % hObject    handle to opticalFlowButton (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-if ~hasFrame(a)
-    disp('No video file selected...');
-    return;
-end
+    set(handles.logText1, 'string', 'User close windows');
+    
 
-while hasFrame(a)
-    disp('Playing frame...');
-end
+function runOpticalFlow(hObject, eventdata, handles)
+    global alpha;
+    global ratio;
+    global minWidth;
+    global nOuterFPIterations;
+    global nInnerFPIterations;
+    global nSORIterations;
+    
+    alpha = 0.012;
+    ratio = 0.75;
+    minWidth = 20;
+    nOuterFPIterations = 7;
+    nInnerFPIterations = 1;
+    nSORIterations = 30;
+    
+    set(handles.logText1, 'string', 'Select a video file');
+    [file,path] = uigetfile('E:\Cloud\Google Drive\projectMdmAzlin\*.avi;*.mp4',...
+    'Select a video file');
+
+    if isequal(file,0)
+        set(handles.logText1, 'string', 'No Video File Selected...');
+        return;
+    else
+        disp(['User selected ', fullfile(path,file)]);
+    end
+    
+    para = [alpha,ratio,minWidth,nOuterFPIterations,nInnerFPIterations,nSORIterations];
+    
+    global vidIn;
+    set(handles.logText1, 'string', 'Loading Video File...');
+    vidIn = VideoReader(fullfile(path,file));
+    
+    if hasFrame(vidIn)
+        last_frame = readFrame(vidIn);
+    end
+    
+    set(handles.logText1, 'string', 'Playing Video File...');
+    while hasFrame(vidIn)
+        cur_frame = readFrame(vidIn);
+        im1 = imresize(last_frame,0.5,'bicubic');
+        im2 = imresize(cur_frame,0.5,'bicubic');
+    
+        tic;
+        [vx,vy,warpI2] = Coarse2FineTwoFrames(im1,im2,para);
+        time = toc;
+        %set(handles.logText1, 'string', toc);
+    
+        clear flow;
+        
+        flow(:,:,1) = vx;
+        flow(:,:,2) = vy;
+        [imflow, maxrad, minu, maxu, minv, maxv] = flowToColor(flow);
+        str1 = sprintf('Elapsed time: %.4f max flow: %.4f', time, maxrad);
+        str2 = sprintf('flow range: u = %.3f .. %.3f; v = %.3f .. %.3f\n',minu, maxu, minv, maxv);
+        set(handles.logText1, 'string', str1);
+        set(handles.logText2, 'string', str2);
+        
+        try
+            figure(1); imshow(cur_frame);
+            figure(2); imshow(imflow);
+        catch
+            set(handles.logText1, 'string', 'User close windows');
+            delete(figure(1));
+            delete(figure(2));
+            break;
+        end
+        last_frame = cur_frame;
+    end
+        
