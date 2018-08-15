@@ -82,7 +82,7 @@ function loadVideoFileButton_Callback(hObject, eventdata, handles)
 % hObject    handle to loadVideoFileButton (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-    runOpticalFlow(hObject, eventdata, handles);
+    runOpticalFlow(hObject, eventdata, handles, false);
 
 
 % --- Executes on button press in applyButton.
@@ -100,7 +100,7 @@ function opticalFlowButton_Callback(hObject, eventdata, handles)
     set(handles.logText1, 'string', 'User close windows');
     
 
-function runOpticalFlow(hObject, eventdata, handles)
+function runOpticalFlow(hObject, eventdata, handles, online)
     global alpha;
     global ratio;
     global minWidth;
@@ -115,23 +115,31 @@ function runOpticalFlow(hObject, eventdata, handles)
     nInnerFPIterations = 1;
     nSORIterations = 30;
     
-    set(handles.logText1, 'string', 'Select a video file');
-    [file,path] = uigetfile('E:\Cloud\Google Drive\projectMdmAzlin\*.avi;*.mp4',...
-    'Select a video file');
-
-    if isequal(file,0)
-        set(handles.logText1, 'string', 'No Video File Selected...');
-        return;
-    else
-        disp(['User selected ', fullfile(path,file)]);
-    end
-    
     para = [alpha,ratio,minWidth,nOuterFPIterations,nInnerFPIterations,nSORIterations];
-    
     global vidIn;
-    set(handles.logText1, 'string', 'Loading Video File...');
-    vidIn = VideoReader(fullfile(path,file));
-    
+    if(~online)
+        set(handles.logText1, 'string', 'Select a video file');
+        [file,path] = uigetfile('E:\Cloud\Google Drive\projectMdmAzlin\*.avi;*.mp4',...
+            'Select a video file');
+        
+        if isequal(file,0)
+            set(handles.logText1, 'string', 'No Video File Selected...');
+            return;
+        else
+            disp(['User selected ', fullfile(path,file)]);
+        end
+        
+        set(handles.logText1, 'string', 'Loading Video File...');
+        vidIn = VideoReader(fullfile(path,file));
+        info = get(vidIn);
+        width = info.Width;
+        height = info.Height;
+        width = width / 8
+        height = height / 8
+    else
+        
+    end
+
     if hasFrame(vidIn)
         last_frame = readFrame(vidIn);
     end
@@ -139,13 +147,12 @@ function runOpticalFlow(hObject, eventdata, handles)
     set(handles.logText1, 'string', 'Playing Video File...');
     while hasFrame(vidIn)
         cur_frame = readFrame(vidIn);
-        im1 = imresize(last_frame,0.5,'bicubic');
-        im2 = imresize(cur_frame,0.5,'bicubic');
+        im1 = imresize(last_frame,[height, width],'bicubic');
+        im2 = imresize(cur_frame,[height, width],'bicubic');
     
         tic;
         [vx,vy,warpI2] = Coarse2FineTwoFrames(im1,im2,para);
         time = toc;
-        %set(handles.logText1, 'string', toc);
     
         clear flow;
         
