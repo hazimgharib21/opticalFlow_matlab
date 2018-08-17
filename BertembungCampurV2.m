@@ -98,9 +98,9 @@ akhirtembung=0;
             end
         end
     end
- figure(1);
+    figure(1);
     quiver(u,v,0);
-     app='F:\Campur\SkeletonCampur\S';
+    app='F:\Campur\SkeletonCampur\S';
     app=strcat(app,int2str(frame));
     app=strcat(app,'.jpg');
     print ( '-f', '-djpeg',app);
