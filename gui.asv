@@ -148,7 +148,6 @@ function runOpticalFlow(hObject, eventdata, handles, online)
         
         width = width / resizeScl;
         height = height / resizeScl;
-        last_frame = readFrame(vidIn);
     else
         set(handles.logText1, 'string', 'Loading Video File...');
         vidIn = videoinput('winvideo', 1, 'YUY2_160x120');
@@ -156,25 +155,23 @@ function runOpticalFlow(hObject, eventdata, handles, online)
         
         vidIn.FramesPerTrigger = 1;
         
-        last_frame = getsnapshot(vidIn);
-        
-        %preview(vidIn);
+        preview(vidIn);
     end
 
-   
-    
-    set(handles.logText1, 'string', 'Playing Video File...');
-    while(true)
+    if hasFrame(vidIn)
         if(~online)
-            cur_frame = readFrame(vidIn);
-            im1 = imresize(last_frame,[height, width],'bicubic');
-            im2 = imresize(cur_frame,[height, width],'bicubic');
+            last_frame = readFrame(vidIn);
         else
-            cur_frame = getsnapshot(vidIn);
-            im1 = last_frame;
-            im2 = cur_frame;
+            la
         end
         
+    end
+    
+    set(handles.logText1, 'string', 'Playing Video File...');
+    while hasFrame(vidIn)
+        cur_frame = readFrame(vidIn);
+        im1 = imresize(last_frame,[height, width],'bicubic');
+        im2 = imresize(cur_frame,[height, width],'bicubic');
     
         tic;
         [vx,vy,warpI2] = Coarse2FineTwoFrames(im1,im2,para);
@@ -218,7 +215,7 @@ function runOpticalFlow(hObject, eventdata, handles, online)
         catch
             set(handles.logText1, 'string', 'User close windows');
             delete(figure(1));
-            %delete(figure(2));
+            delete(figure(2));
             break;
         end
         last_frame = cur_frame;
