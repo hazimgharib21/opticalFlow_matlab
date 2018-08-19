@@ -22,7 +22,7 @@ function varargout = gui(varargin)
 
 % Edit the above text to modify the response to help gui
 
-% Last Modified by GUIDE v2.5 17-Aug-2018 19:51:17
+% Last Modified by GUIDE v2.5 19-Aug-2018 20:44:41
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -102,6 +102,12 @@ function opticalFlowButton_Callback(hObject, eventdata, handles)
 
 function runOpticalFlow(hObject, eventdata, handles, online)
 
+    currentFolder = pwd;
+    sampleFolder = strcat(currentFolder, '\sample\*.avi;*.mp4');
+    outputFolder = strcat(currentFolder, '\output');
+    if exist(outputFolder,'dir')~=7
+        mkdir(outputFolder);
+    end
     resizeScl = str2double(get(handles.resizeScale, 'string'));
     flowThresh = str2double(get(handles.flowThreshold, 'string'));
     global alpha;
@@ -124,7 +130,7 @@ function runOpticalFlow(hObject, eventdata, handles, online)
     global vidIn;
     if(~online)
         set(handles.logText1, 'string', 'Select a video file');
-        [file,path] = uigetfile('E:\Cloud\Google Drive\projectMdmAzlin\*.avi;*.mp4',...
+        [file,path] = uigetfile(sampleFolder,...
             'Select a video file');
         
         if isequal(file,0)
@@ -143,15 +149,20 @@ function runOpticalFlow(hObject, eventdata, handles, online)
         width = width / resizeScl;
         height = height / resizeScl;
     else
+        set(handles.logText1, 'string', 'Loading Video File...');
+        vidIn = VideoReader();
+        info = get(vidIn);
+        width = info.Width;
+        height = info.Height;
         
+        width = width / resizeScl;
+        height = height / resizeScl;
     end
 
     if hasFrame(vidIn)
         last_frame = readFrame(vidIn);
     end
-    if exist('output','dir')~=7
-        mkdir('output');
-    end
+    
     set(handles.logText1, 'string', 'Playing Video File...');
     while hasFrame(vidIn)
         cur_frame = readFrame(vidIn);
@@ -172,34 +183,23 @@ function runOpticalFlow(hObject, eventdata, handles, online)
         set(handles.logText1, 'string', str1);
         set(handles.logText2, 'string', str2);
         if (maxrad > flowThresh)
-            if(warning == false)
-                fileNum = fileNum+1;
-                fileNumStr = int2str(fileNum);
-                fileNumOutStr = strcat(fileNumStr,'_input.gif');
-                clear volume;
-                volume(:,:,:,1) = last_frame;
-                volume(:,:,:,2) = cur_frame;
-                frame2gif(volume,fullfile('output',fileNumOutStr));
-                
-                warn = 'Warning!!!';
-                set(handles.logText3, 'string', warn);
-                
-                warning = true;
-            end
+            warning = true;
+        else
+            warning = false;
+            
+        end
+        if(warning)
             fileNum = fileNum+1;
             fileNumStr = int2str(fileNum);
             fileNumOutStr = strcat(fileNumStr,'_input.gif');
             clear volume;
             volume(:,:,:,1) = last_frame;
             volume(:,:,:,2) = cur_frame;
-            frame2gif(volume,fullfile('output',fileNumOutStr));
+            frame2gif(volume,fullfile(outputFolder,fileNumOutStr));
             
             warn = 'Warning!!!';
             set(handles.logText3, 'string', warn);
-            
-            
         else
-            warning = false;
             set(handles.logText3, 'string', '-');
         end
         
@@ -263,3 +263,19 @@ function flowThreshold_CreateFcn(hObject, eventdata, handles)
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
+
+
+% --- Executes on button press in openOutputFolder.
+function openOutputFolder_Callback(hObject, eventdata, handles)
+% hObject    handle to openOutputFolder (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+    winopen('E:\Parasite\Workspace\Project\opticalFlow_matlab\output');
+
+
+% --- Executes on button press in openWebcam.
+function openWebcam_Callback(hObject, eventdata, handles)
+% hObject    handle to openWebcam (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+     runOpticalFlow(hObject, eventdata, handles, true);
